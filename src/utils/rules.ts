@@ -11,17 +11,16 @@ export const getRules = (getValues?: UseFormGetValues<any>): Rules => ({
       message: 'Email là bắt buộc'
     },
     pattern: {
-      // eslint-disable-next-line no-useless-escape
-      value: /^[\w\-\.]+@([\w-]+\.)+[\w-]{2,}$/,
+      value: /^\S+@\S+\.\S+$/,
       message: 'Email không đúng định dạng'
     },
     maxLength: {
       value: 160,
-      message: 'Độ dài từ 5-160 kí tự'
+      message: 'Độ dài từ 5 - 160 ký tự'
     },
     minLength: {
       value: 5,
-      message: 'Độ dài từ 5-160 kí tự'
+      message: 'Độ dài từ 5 - 160 ký tự'
     }
   },
   password: {
@@ -72,7 +71,7 @@ export const schema = yup.object({
   email: yup
     .string()
     .required('Email là bắt buộc')
-    .email('')
+    .email('Email không đúng định dạng')
     .min(5, 'Độ dài từ 5-160 kí tự')
     .max(160, 'Độ dài từ 5-160 kí tự'),
   password: yup

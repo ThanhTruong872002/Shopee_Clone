@@ -1,32 +1,68 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import Input from 'src/components/Input'
 import { schema, Schema } from 'src/utils/rules'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useMutation } from '@tanstack/react-query'
-import { registerAccount } from 'src/apis/auth.api'
 import { omit } from 'lodash'
+import { isAxiosUnprocessableEntityError } from 'src/utils/until'
+import { ErrorResponse } from 'src/types/utils.type'
+import { useContext } from 'react'
+import { AppContext } from 'src/contexts/app.context'
+import Button from 'src/components/Button'
+import authApi from 'src/apis/auth.api'
+
 
 type FormData = Schema
 
 export default function Register() {
+  const { setIsAuthenticated, setProfile } = useContext(AppContext)
+  const navigate = useNavigate()
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors }
   } = useForm<FormData>({
     resolver: yupResolver(schema)
   })
 
   const registerAccountMutation = useMutation({
-    mutationFn: (body: Omit<FormData, 'confirm_password'>) => registerAccount(body)
+    mutationFn: (body: Omit<FormData, 'confirm_password'>) => authApi.registerAccount(body)
   })
+
   const onsubmit = handleSubmit((data) => {
     const body = omit(data, ['confirm_password'])
     registerAccountMutation.mutate(body, {
       onSuccess: (data) => {
-        console.log(data);
-        
+        setIsAuthenticated(true)
+        setProfile(data.data.data.user) 
+        navigate('/')
+      },
+      onError: (error) => {
+        if (isAxiosUnprocessableEntityError<ErrorResponse<Omit<FormData, 'confirm_password'>>>(error)) {
+          const formError = error.response?.data.data
+          if (formError) {
+            Object.keys(formError).forEach((key) => {
+              setError(key as keyof Omit<FormData, 'confirm_password'>, {
+                message: formError[key as keyof Omit<FormData, 'confirm_password'>],
+                type: 'Server'
+              })
+            })
+          }
+          if (formError?.email) {
+            setError('email', {
+              message: formError.email,
+              type: 'Server'
+            })
+          }
+          if (formError?.password) {
+            setError('password', {
+              message: formError.password,
+              type: 'Server'
+            })
+          }
+        }
       }
     })
   })
@@ -65,9 +101,13 @@ export default function Register() {
               />
 
               <div className='mt-3'>
-                <button className='w-full text-center py-4 px-2 uppercase bg-red-500 text-white text-sm hover:bg-red-600'>
+                <Button
+                  isLoading={registerAccountMutation.isPending}
+                  disabled={registerAccountMutation.isPending}
+                  className='w-full flex items-center justify-center py-4 px-2 uppercase bg-red-500 text-white text-sm hover:bg-red-600'
+                >
                   Đăng ký
-                </button>
+                </Button>
               </div>
               <div className='mt-8 flex item-center justify-center'>
                 <span className='text-gray-400'>Bạn đã có tài khoản ?</span>
